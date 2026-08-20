@@ -609,6 +609,58 @@ function estimateDriveFromAddress(addressText, terminal) {
   return { miles: baseMiles, driveMinutes: baseDriveMinutes };
 }
 
+function getPredictedFerry(terminal, tollArrivalETA) {
+  const now = new Date();
+  const nextMin = terminal.nextSailingMin || 15;
+  const vessel1 = terminal.sailingVessel || "M/V Tacoma";
+  
+  // Vessel pair mapping for WSF double-vessel routes
+  const vesselPairs = {
+    "M/V Tacoma": "M/V Wenatchee",
+    "M/V Wenatchee": "M/V Tacoma",
+    "M/V Puyallup": "M/V Spokane",
+    "M/V Spokane": "M/V Puyallup",
+    "M/V Suquamish": "M/V Tokitae",
+    "M/V Tokitae": "M/V Suquamish",
+    "M/V Cathlamet": "M/V Kitsap",
+    "M/V Kitsap": "M/V Cathlamet",
+    "M/V Samish": "M/V Chelan",
+    "M/V Chelan": "M/V Samish"
+  };
+  const vessel2 = vesselPairs[vessel1] || "M/V Puyallup";
+
+  const headways = [0, 45, 90, 135]; // typical 45-minute sailing intervals
+  
+  for (let i = 0; i < headways.length; i++) {
+    const minsFromNow = nextMin + headways[i];
+    const targetVessel = (i % 2 === 0) ? vessel1 : vessel2;
+    
+    // User needs to arrive at toll plaza at least 5 mins before departure to board
+    if (tollArrivalETA <= minsFromNow - 5) {
+      const departureDate = new Date(now.getTime() + minsFromNow * 60000);
+      const timeStr = departureDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+      return {
+        sailingNum: i + 1,
+        minsFromNow: minsFromNow,
+        timeStr: timeStr,
+        vessel: targetVessel,
+        spaces: i === 0 ? terminal.drivesAvailable : Math.min(160, terminal.drivesAvailable + 60)
+      };
+    }
+  }
+
+  // Fallback for late ETA
+  const fallbackMins = nextMin + 180;
+  const departureDate = new Date(now.getTime() + fallbackMins * 60000);
+  return {
+    sailingNum: 4,
+    minsFromNow: fallbackMins,
+    timeStr: departureDate.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }),
+    vessel: vessel1,
+    spaces: 140
+  };
+}
+
 function updateQueuePrediction() {
   const terminalSelect = document.getElementById("queue-terminal-select");
   const addressInput = document.getElementById("queue-address-input");
@@ -631,27 +683,28 @@ function updateQueuePrediction() {
   const vessel = terminal.sailingVessel || "M/V Tacoma";
   const spaces = terminal.drivesAvailable;
 
-  let badgeClass = "queue-badge-high";
-  let icon = "fa-check-circle";
-  let textTitle = "HIGH CHANCE TO BOARD";
-  let detailText = `📍 <strong>${addressText || 'Starting Address'}</strong> → ${terminal.shortName}<br>` +
-    `🚗 Drive: ~<strong>${driveMinutes} mins</strong> (${miles} mi) • ⏳ Toll Queue Wait: <strong>${terminal.waitMinutes} mins</strong><br>` +
-    `🏁 Toll Plaza Arrival in ~<strong>${tollArrivalETA} mins</strong>. Sailing in <strong>${nextSailingMin}m</strong> on ${vessel} (${spaces} open deck spaces).`;
+  const predictedSailing = getPredictedFerry(terminal, tollArrivalETA);
 
-  if (tollArrivalETA > nextSailingMin + 8 || spaces < 20) {
-    badgeClass = "queue-badge-low";
-    icon = "fa-exclamation-triangle";
-    textTitle = "LIKELY FULL — TARGET FOLLOWING SAILING";
-    detailText = `📍 <strong>${addressText || 'Starting Address'}</strong> → ${terminal.shortName}<br>` +
-      `🚗 Drive time (${driveMinutes}m) + heavy toll queue (${terminal.waitMinutes}m wait) = <strong>${tollArrivalETA}m total ETA</strong>.<br>` +
-      `⚠️ Exceeds the ${nextSailingMin}m departure window on ${vessel}. Target the following sailing.`;
-  } else if (tollArrivalETA >= nextSailingMin - 5 || spaces < 45) {
+  let badgeClass = "queue-badge-high";
+  let icon = "fa-ship";
+  let textTitle = `PREDICTED FERRY: ${predictedSailing.timeStr} (${predictedSailing.vessel})`;
+
+  let formatHrs = Math.floor(predictedSailing.minsFromNow / 60);
+  let formatMins = predictedSailing.minsFromNow % 60;
+  let countdownText = formatHrs > 0 ? `${formatHrs}h ${formatMins}m` : `${formatMins}m`;
+
+  let detailText = `📍 <strong>${addressText || 'Starting Address'}</strong> → ${terminal.shortName}<br>` +
+    `🚗 Drive: <strong>${driveMinutes} mins</strong> (${miles} mi) + ⏳ Queue: <strong>${terminal.waitMinutes} mins</strong> = <strong>${tollArrivalETA} mins total ETA</strong>.<br>` +
+    `🚢 <strong>Predicted Ferry You Will Make: ${predictedSailing.timeStr} sailing</strong> (${predictedSailing.vessel}, in ${countdownText}) with ~${predictedSailing.spaces} open vehicle spaces.`;
+
+  if (predictedSailing.sailingNum > 1) {
     badgeClass = "queue-badge-medium";
-    icon = "fa-info-circle";
-    textTitle = "STANDBY / TIGHT DECK FIT";
+    icon = "fa-clock";
+    textTitle = `NEXT FEASIBLE SAILING: ${predictedSailing.timeStr} (${predictedSailing.vessel})`;
     detailText = `📍 <strong>${addressText || 'Starting Address'}</strong> → ${terminal.shortName}<br>` +
-      `🚗 Total arrival (~${tollArrivalETA}m) aligns close to the ${nextSailingMin}m departure.<br>` +
-      `⛵ ${spaces} deck spaces left on ${vessel}. Drive-up standby queue recommended.`;
+      `🚗 Drive (${driveMinutes}m) + Toll Queue (${terminal.waitMinutes}m) = <strong>${tollArrivalETA}m Total ETA</strong>.<br>` +
+      `⚠️ Misses immediate ${nextSailingMin}m departure on ${vessel}.<br>` +
+      `✅ <strong>Predicted Ferry You Will Catch: ${predictedSailing.timeStr} sailing</strong> (${predictedSailing.vessel}, departing in ${countdownText}).`;
   }
 
   resultContainer.innerHTML = `
@@ -659,7 +712,7 @@ function updateQueuePrediction() {
       <i class="fas ${icon}"></i>
       <span>${textTitle}</span>
     </div>
-    <div style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.4; margin-top: 4px;">
+    <div style="font-size: 0.74rem; color: var(--text-muted); line-height: 1.45; margin-top: 5px;">
       ${detailText}
     </div>
   `;
