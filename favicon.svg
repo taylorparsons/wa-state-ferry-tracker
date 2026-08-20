@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0A192F" />
+      <stop offset="100%" stop-color="#00B4D8" />
+    </linearGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#bgGrad)" stroke="#38BDF8" stroke-width="2"/>
+  <!-- Ferry Silhouette -->
+  <path d="M 22,62 L 78,62 L 72,48 L 28,48 Z" fill="#00B4D8" />
+  <path d="M 32,48 L 68,48 L 63,35 L 37,35 Z" fill="#FFFFFF" />
+  <rect x="44" y="27" width="12" height="8" rx="2" fill="#38BDF8" />
+  <line x1="20" y1="67" x2="80" y2="67" stroke="#38BDF8" stroke-width="3" stroke-linecap="round" />
+  <circle cx="35" cy="42" r="2" fill="#0A192F" />
+  <circle cx="50" cy="42" r="2" fill="#0A192F" />
+  <circle cx="65" cy="42" r="2" fill="#0A192F" />
+</svg>
