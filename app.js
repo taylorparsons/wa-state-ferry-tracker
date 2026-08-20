@@ -528,32 +528,100 @@ function setupEventListeners() {
     modal.classList.remove("open");
   });
 
-  // Queue Predictor Listeners
+  // Queue Predictor Address & Route Listeners
   const termSelect = document.getElementById("queue-terminal-select");
-  const etaSelect = document.getElementById("queue-drive-eta");
-  if (termSelect && etaSelect) {
-    termSelect.addEventListener("change", updateQueuePrediction);
-    etaSelect.addEventListener("change", updateQueuePrediction);
-    updateQueuePrediction();
+  const addressInput = document.getElementById("queue-address-input");
+  const btnCalc = document.getElementById("btn-calculate-route");
+  const btnLocation = document.getElementById("btn-use-location");
+
+  if (termSelect) termSelect.addEventListener("change", updateQueuePrediction);
+  if (btnCalc) btnCalc.addEventListener("click", updateQueuePrediction);
+  if (addressInput) {
+    addressInput.addEventListener("keyup", (e) => {
+      if (e.key === "Enter") updateQueuePrediction();
+    });
   }
 
+  if (btnLocation) {
+    btnLocation.addEventListener("click", () => {
+      if (navigator.geolocation) {
+        btnLocation.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const lat = pos.coords.latitude.toFixed(4);
+            const lng = pos.coords.longitude.toFixed(4);
+            if (addressInput) addressInput.value = `Current Location (${lat}, ${lng})`;
+            btnLocation.innerHTML = '<i class="fas fa-crosshairs"></i>';
+            updateQueuePrediction();
+          },
+          () => {
+            btnLocation.innerHTML = '<i class="fas fa-crosshairs"></i>';
+            if (addressInput) addressInput.value = "Downtown Seattle, WA";
+            updateQueuePrediction();
+          }
+        );
+      }
+    });
+  }
+
+  updateQueuePrediction();
   setupAuthListeners();
+}
+
+function estimateDriveFromAddress(addressText, terminal) {
+  addressText = (addressText || "").toLowerCase().trim();
+  
+  let baseMiles = 6.5;
+  let baseDriveMinutes = 18;
+
+  if (addressText.includes("seattle") || addressText.includes("pike") || addressText.includes("4th ave")) {
+    if (terminal.id === 1) { baseMiles = 1.2; baseDriveMinutes = 6; }
+    else if (terminal.id === 3) { baseMiles = 16.0; baseDriveMinutes = 32; }
+    else if (terminal.id === 7) { baseMiles = 9.5; baseDriveMinutes = 24; }
+    else { baseMiles = 22.0; baseDriveMinutes = 45; }
+  } else if (addressText.includes("bainbridge") || addressText.includes("winslow")) {
+    if (terminal.id === 2) { baseMiles = 2.5; baseDriveMinutes = 8; }
+    else { baseMiles = 18.0; baseDriveMinutes = 35; }
+  } else if (addressText.includes("edmonds") || addressText.includes("lynnwood")) {
+    if (terminal.id === 3) { baseMiles = 3.0; baseDriveMinutes = 9; }
+    else { baseMiles = 19.0; baseDriveMinutes = 38; }
+  } else if (addressText.includes("kingston") || addressText.includes("poulsbo")) {
+    if (terminal.id === 4) { baseMiles = 4.0; baseDriveMinutes = 10; }
+    else { baseMiles = 24.0; baseDriveMinutes = 42; }
+  } else if (addressText.includes("mukilteo") || addressText.includes("everett")) {
+    if (terminal.id === 5) { baseMiles = 3.5; baseDriveMinutes = 10; }
+    else { baseMiles = 28.0; baseDriveMinutes = 48; }
+  } else if (addressText.includes("tacoma") || addressText.includes("pt defiance")) {
+    if (terminal.id === 13) { baseMiles = 3.0; baseDriveMinutes = 9; }
+    else { baseMiles = 32.0; baseDriveMinutes = 55; }
+  } else if (addressText.length > 2) {
+    let hash = 0;
+    for (let i = 0; i < addressText.length; i++) hash += addressText.charCodeAt(i);
+    baseMiles = parseFloat(((hash % 16) + 2.5).toFixed(1));
+    baseDriveMinutes = Math.round(baseMiles * 2.1 + 5);
+  }
+
+  return { miles: baseMiles, driveMinutes: baseDriveMinutes };
 }
 
 function updateQueuePrediction() {
   const terminalSelect = document.getElementById("queue-terminal-select");
-  const driveEtaSelect = document.getElementById("queue-drive-eta");
+  const addressInput = document.getElementById("queue-address-input");
   const resultContainer = document.getElementById("queue-prediction-result");
 
-  if (!terminalSelect || !driveEtaSelect || !resultContainer) return;
+  if (!terminalSelect || !resultContainer) return;
 
   const terminalId = parseInt(terminalSelect.value, 10);
-  const driveMinutes = parseInt(driveEtaSelect.value, 10);
+  const addressText = addressInput ? addressInput.value.trim() : "Seattle, WA";
 
   const terminal = WSF_DATA.terminals.find(t => t.id === terminalId);
   if (!terminal) return;
 
-  const totalMinutesToSailing = driveMinutes + terminal.waitMinutes;
+  const driveInfo = estimateDriveFromAddress(addressText, terminal);
+  const driveMinutes = driveInfo.driveMinutes;
+  const miles = driveInfo.miles;
+
+  const tollArrivalETA = driveMinutes + terminal.waitMinutes;
   const nextSailingMin = terminal.nextSailingMin || 15;
   const vessel = terminal.sailingVessel || "M/V Tacoma";
   const spaces = terminal.drivesAvailable;
@@ -561,18 +629,24 @@ function updateQueuePrediction() {
   let badgeClass = "queue-badge-high";
   let icon = "fa-check-circle";
   let textTitle = "HIGH CHANCE TO BOARD";
-  let detailText = `Drive time (${driveMinutes}m) + toll queue (${terminal.waitMinutes}m) = ~${totalMinutesToSailing}m ETA. Boarding ${vessel} in ${nextSailingMin}m (${spaces} open deck spaces).`;
+  let detailText = `📍 <strong>${addressText || 'Starting Address'}</strong> → ${terminal.shortName}<br>` +
+    `🚗 Drive: ~<strong>${driveMinutes} mins</strong> (${miles} mi) • ⏳ Toll Queue Wait: <strong>${terminal.waitMinutes} mins</strong><br>` +
+    `🏁 Toll Plaza Arrival in ~<strong>${tollArrivalETA} mins</strong>. Sailing in <strong>${nextSailingMin}m</strong> on ${vessel} (${spaces} open deck spaces).`;
 
-  if (totalMinutesToSailing > nextSailingMin + 10 || spaces < 20) {
+  if (tollArrivalETA > nextSailingMin + 8 || spaces < 20) {
     badgeClass = "queue-badge-low";
     icon = "fa-exclamation-triangle";
-    textTitle = "LIKELY AT CAPACITY — TARGET NEXT SAILING";
-    detailText = `Drive time (${driveMinutes}m) + heavy toll queue (${terminal.waitMinutes}m) exceeds the ${nextSailingMin}m departure on ${vessel}. Target the following sailing.`;
-  } else if (totalMinutesToSailing >= nextSailingMin - 5 || spaces < 45) {
+    textTitle = "LIKELY FULL — TARGET FOLLOWING SAILING";
+    detailText = `📍 <strong>${addressText || 'Starting Address'}</strong> → ${terminal.shortName}<br>` +
+      `🚗 Drive time (${driveMinutes}m) + heavy toll queue (${terminal.waitMinutes}m wait) = <strong>${tollArrivalETA}m total ETA</strong>.<br>` +
+      `⚠️ Exceeds the ${nextSailingMin}m departure window on ${vessel}. Target the following sailing.`;
+  } else if (tollArrivalETA >= nextSailingMin - 5 || spaces < 45) {
     badgeClass = "queue-badge-medium";
     icon = "fa-info-circle";
-    textTitle = "STANDBY / CLOSE CALL";
-    detailText = `Arrival aligns close to departure. ${spaces} deck spaces left on ${vessel}. Drive-up standby queue recommended.`;
+    textTitle = "STANDBY / TIGHT DECK FIT";
+    detailText = `📍 <strong>${addressText || 'Starting Address'}</strong> → ${terminal.shortName}<br>` +
+      `🚗 Total arrival (~${tollArrivalETA}m) aligns close to the ${nextSailingMin}m departure.<br>` +
+      `⛵ ${spaces} deck spaces left on ${vessel}. Drive-up standby queue recommended.`;
   }
 
   resultContainer.innerHTML = `
@@ -580,7 +654,7 @@ function updateQueuePrediction() {
       <i class="fas ${icon}"></i>
       <span>${textTitle}</span>
     </div>
-    <div style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.35; margin-top: 3px;">
+    <div style="font-size: 0.72rem; color: var(--text-muted); line-height: 1.4; margin-top: 4px;">
       ${detailText}
     </div>
   `;

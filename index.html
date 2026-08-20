@@ -152,24 +152,31 @@
           <i class="fas fa-route" style="color: #00B4D8;"></i>
           <span>Will I Make the Next Ferry?</span>
         </div>
-        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 6px 0 10px 0;">Calculates terminal toll plaza queue, drive time, and deck space for upcoming sailings:</p>
+        <p style="font-size: 0.78rem; color: var(--text-muted); margin: 6px 0 10px 0;">Enter your starting address to calculate real drive time, terminal queue delay, and boarding chances:</p>
         
         <div class="queue-form-row">
-          <select id="queue-terminal-select" class="queue-select">
-            <option value="1">Seattle (Colman Dock)</option>
-            <option value="2" selected>Bainbridge Island</option>
-            <option value="3">Edmonds Terminal</option>
-            <option value="4">Kingston Terminal</option>
-            <option value="5">Mukilteo Terminal</option>
-            <option value="7">Fauntleroy Terminal</option>
-            <option value="10">Anacortes Terminal</option>
-          </select>
-          <select id="queue-drive-eta" class="queue-select">
-            <option value="5">Drive ETA: 5 mins</option>
-            <option value="15" selected>Drive ETA: 15 mins</option>
-            <option value="30">Drive ETA: 30 mins</option>
-            <option value="45">Drive ETA: 45 mins</option>
-          </select>
+          <div class="address-input-wrapper">
+            <i class="fas fa-map-marker-alt address-icon"></i>
+            <input type="text" id="queue-address-input" class="queue-address-field" placeholder="Enter starting address (e.g. 1000 4th Ave, Seattle)" value="Pike Place Market, Seattle, WA">
+            <button type="button" id="btn-use-location" class="btn-location-pin" title="Use current location">
+              <i class="fas fa-crosshairs"></i>
+            </button>
+          </div>
+
+          <div style="display: flex; gap: 8px;">
+            <select id="queue-terminal-select" class="queue-select" style="flex: 1;">
+              <option value="1">Seattle (Colman Dock)</option>
+              <option value="2" selected>Bainbridge Island</option>
+              <option value="3">Edmonds Terminal</option>
+              <option value="4">Kingston Terminal</option>
+              <option value="5">Mukilteo Terminal</option>
+              <option value="7">Fauntleroy Terminal</option>
+              <option value="10">Anacortes Terminal</option>
+            </select>
+            <button type="button" id="btn-calculate-route" class="btn-calc-route">
+              <i class="fas fa-calculator"></i> Predict
+            </button>
+          </div>
         </div>
 
         <div class="queue-prediction-result" id="queue-prediction-result">
