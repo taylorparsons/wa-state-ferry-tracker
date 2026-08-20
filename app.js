@@ -190,17 +190,22 @@ function drawTerminals() {
         </div>
 
         <!-- REAL LIVE WSDOT PUBLIC TRAFFIC CAMERA FEED -->
-        <div style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-active); margin-bottom: 8px; background: #000; min-height: 140px;">
+        <div style="position: relative; border-radius: 8px; overflow: hidden; border: 1px solid var(--border-active); margin-bottom: 8px; background: rgba(13, 24, 41, 0.9); min-height: 120px;">
           <img src="${liveCamSrc}" 
                alt="${terminal.cameraTitle}" 
-               onerror="this.onerror=null; this.src='assets/cam_seattle.png';"
+               onerror="this.style.display='none'; document.getElementById('cam-status-${terminal.id}').style.display='flex';"
                style="width: 100%; height: 145px; object-fit: cover; display: block;">
-          <div style="position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.8); color: #55E52B; font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(85, 229, 43, 0.5); display: flex; align-items: center; gap: 4px;">
-            <span style="width: 6px; height: 6px; background: #55E52B; border-radius: 50%; display: inline-block;"></span>
-            <span>REAL WSDOT LIVE CAM</span>
+          
+          <!-- Fallback when camera stream is temporarily restricted by WSDOT -->
+          <div id="cam-status-${terminal.id}" style="display: none; padding: 18px 12px; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; height: 120px; background: rgba(0, 180, 216, 0.06);">
+            <i class="fas fa-video" style="font-size: 1.5rem; color: var(--accent-cyan);"></i>
+            <span style="font-size: 0.78rem; font-weight: 700; color: var(--text-main);">Real Live Stream on WSDOT Portal</span>
+            <span style="font-size: 0.68rem; color: var(--text-muted);">📷 ${terminal.cameraTitle}</span>
           </div>
-          <div style="position: absolute; bottom: 0; left: 0; right: 0; background: linear-gradient(180deg, transparent, rgba(0,0,0,0.9)); padding: 4px 8px; font-size: 0.68rem; color: #E2E8F0;">
-            📷 ${terminal.cameraTitle}
+
+          <div style="position: absolute; top: 6px; left: 6px; background: rgba(0,0,0,0.85); color: #55E52B; font-size: 0.65rem; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid rgba(85, 229, 43, 0.5); display: flex; align-items: center; gap: 4px;">
+            <span style="width: 6px; height: 6px; background: #55E52B; border-radius: 50%; display: inline-block;"></span>
+            <span>REAL WSDOT CAMERA</span>
           </div>
         </div>
         
