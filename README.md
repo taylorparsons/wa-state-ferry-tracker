@@ -2,8 +2,6 @@
 
 > **Real-time Puget Sound ferry fleet tracking, WSDOT terminal drive-up queue prediction, live traffic camera feeds, and vessel wind telemetry.**
 
-Live Production Application: **[https://wsf-ferry-tracker-836866838279.us-east1.run.app](https://wsf-ferry-tracker-836866838279.us-east1.run.app)**
-
 ---
 
 ## ✨ Key Features
@@ -37,7 +35,7 @@ The application works out-of-the-box in simulation mode with full telemetry. To 
    - WSDOT will immediately email you a unique 36-character **Access Code API Key** (GUID format: `xxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`).
 
 4. **Activate in the App**:
-   - Open the web app (**[http://localhost:8001](http://localhost:8001)** or **[https://wsf-ferry-tracker-836866838279.us-east1.run.app](https://wsf-ferry-tracker-836866838279.us-east1.run.app)**).
+   - Open the web app (**[http://localhost:8001](http://localhost:8001)**).
    - Click the **`WSDOT API`** key button in the top navigation bar.
    - Paste your Access Code and click **`Save & Enable Direct Polling`**.
    - Your key is securely saved in your browser's `localStorage`!
